@@ -128,13 +128,20 @@ export default function JobListingCard({ job }: JobListingCardProps) {
               </>
             ) : (
               <>
-                <Image 
-                  src="/svg/plus-icon.svg"
-                  width={20}
-                  height={20}
-                  alt="Plus sign"
-                  className="h-5 w-5 mr-1 text-current"
-                />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
                 {isAddingToList ? "Adding..." : "Track Application"}
               </>
             )}

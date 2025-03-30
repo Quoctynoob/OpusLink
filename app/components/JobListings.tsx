@@ -21,6 +21,7 @@ export default function JobListings({
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [isAIEnabled, setIsAIEnabled] = useState<boolean>(true);
 
   const fetchJobs = async (params: JobSearchParams) => {
     setIsLoading(true);
@@ -32,7 +33,12 @@ export default function JobListings({
       // Using the correct parameter names for our API route
       if (params.title) queryParams.append("title", params.title);
       if (params.location) queryParams.append("location", params.location);
+      if (params.job_type) queryParams.append("job_type", params.job_type);
       if (params.page) queryParams.append("page", params.page.toString());
+      if (params.enhanced_search !== undefined) {
+        queryParams.append("enhanced_search", params.enhanced_search.toString());
+        setIsAIEnabled(params.enhanced_search);
+      }
       
       const resultsPerPage = 10;
       queryParams.append("results_per_page", resultsPerPage.toString());
@@ -118,10 +124,20 @@ export default function JobListings({
         <h2 className="text-xl font-semibold mb-2">
           {totalJobs.toLocaleString()} Jobs Found
         </h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          {searchParams.title && `"${searchParams.title}"`}{" "}
-          {searchParams.location && `in ${searchParams.location}`}
-        </p>
+        <div className="text-gray-600 dark:text-gray-400">
+          {searchParams.title && <span>"{searchParams.title}"</span>}{" "}
+          {searchParams.location && <span>in {searchParams.location}</span>}
+          {searchParams.job_type && (
+            <span className="ml-2">
+              • {searchParams.job_type.replace('_', '-').replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+          )}
+          {isAIEnabled && (
+            <span className="ml-2 text-blue-600 dark:text-blue-400">
+              • AI-enhanced search enabled
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-6">

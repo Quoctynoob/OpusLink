@@ -14,12 +14,16 @@ export default function JobSearchForm({
 }: JobSearchFormProps) {
   const [jobTitle, setJobTitle] = useState("");
   const [location, setLocation] = useState("");
+  const [jobType, setJobType] = useState("");
+  const [useAI, setUseAI] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch({
       title: jobTitle,
       location: location,
+      job_type: jobType,
+      enhanced_search: useAI,
       page: 1, // Reset to first page on new search
     });
   };
@@ -67,6 +71,42 @@ export default function JobSearchForm({
             className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
           />
         </div>
+      </div>
+
+      {/* Job Type Filter */}
+      <div className="mb-4">
+        <label
+          htmlFor="jobType"
+          className="block text-sm font-medium mb-1"
+        >
+          Job Type
+        </label>
+        <select
+          id="jobType"
+          value={jobType}
+          onChange={(e) => setJobType(e.target.value)}
+          className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
+        >
+          <option value="">All Job Types</option>
+          <option value="full_time">Full-Time</option>
+          <option value="part_time">Part-Time</option>
+          <option value="contract">Contract/Intern</option>
+          <option value="permanent">Permanent</option>
+        </select>
+      </div>
+
+      {/* AI Search Toggle */}
+      <div className="flex items-center mt-4">
+        <input
+          type="checkbox"
+          id="useAI"
+          checked={useAI}
+          onChange={(e) => setUseAI(e.target.checked)}
+          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label htmlFor="useAI" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+          Use AI to enhance search (finds similar job titles)
+        </label>
       </div>
 
       <div className="flex justify-center mt-6">

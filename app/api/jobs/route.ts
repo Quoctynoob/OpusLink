@@ -1,5 +1,7 @@
+// app/api/jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { JobApiResponse, JobSearchParams } from "@/app/types";
+import { enhanceJobTitleQuery, generateEnhancedQueryString } from "@/app/lib/aiSearchService";
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,8 +9,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const title = searchParams.get("title") || "";
     const location = searchParams.get("location") || "";
+    const jobType = searchParams.get("job_type") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const results_per_page = parseInt(searchParams.get("results_per_page") || "10");
+    const enhanced_search = searchParams.get("enhanced_search") !== "false"; // Default to true
 
     // Check for required API credentials
     const appId = process.env.ADZUNA_APP_ID;
@@ -44,9 +48,46 @@ export async function GET(request: NextRequest) {
     apiUrl.searchParams.append("app_key", apiKey);
     apiUrl.searchParams.append("results_per_page", results_per_page.toString());
     
-    // Add optional search parameters
-    if (title) apiUrl.searchParams.append("what", title);
+    // Use AI enhancement for job title if enabled
+    if (title && enhanced_search) {
+      // Get enhanced search terms
+      const enhancedTerms = enhanceJobTitleQuery(title);
+      console.log("Enhanced search terms:", enhancedTerms);
+      
+      // Generate query string for Adzuna
+      const enhancedQuery = generateEnhancedQueryString(enhancedTerms);
+      
+      if (enhancedQuery) {
+        apiUrl.searchParams.append("what", enhancedQuery);
+      }
+    } else if (title) {
+      // Just use the original title query without enhancement
+      apiUrl.searchParams.append("what", title);
+    }
+    
+    // Add location if provided
     if (location) apiUrl.searchParams.append("where", location);
+    
+    // Add job type filter if provided
+    if (jobType) {
+      switch (jobType) {
+        case "full_time":
+          apiUrl.searchParams.append("full_time", "1");
+          break;
+        case "part_time":
+          apiUrl.searchParams.append("part_time", "1");
+          break;
+        case "contract":
+          apiUrl.searchParams.append("contract", "1");
+          break;
+        case "permanent":
+          apiUrl.searchParams.append("permanent", "1");
+          break;
+        default:
+          // No filter
+          break;
+      }
+    }
 
     console.log("Requesting from Adzuna:", apiUrl.toString());
     
