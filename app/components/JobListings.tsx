@@ -21,7 +21,7 @@ export default function JobListings({
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [isAIEnabled, setIsAIEnabled] = useState<boolean>(true);
+  const [fromCache, setFromCache] = useState<boolean>(false);
 
   const fetchJobs = async (params: JobSearchParams) => {
     setIsLoading(true);
@@ -35,10 +35,6 @@ export default function JobListings({
       if (params.location) queryParams.append("location", params.location);
       if (params.job_type) queryParams.append("job_type", params.job_type);
       if (params.page) queryParams.append("page", params.page.toString());
-      if (params.enhanced_search !== undefined) {
-        queryParams.append("enhanced_search", params.enhanced_search.toString());
-        setIsAIEnabled(params.enhanced_search);
-      }
       
       const resultsPerPage = 10;
       queryParams.append("results_per_page", resultsPerPage.toString());
@@ -60,6 +56,7 @@ export default function JobListings({
       setTotalJobs(data.totalJobs);
       setTotalPages(data.totalPages);
       setCurrentPage(data.currentPage);
+      setFromCache(data.fromCache || false);
     } catch (err) {
       console.error("Error fetching jobs:", err);
       setError("Failed to fetch job listings. Please try again later.");
@@ -132,9 +129,9 @@ export default function JobListings({
               • {searchParams.job_type.replace('_', '-').replace(/\b\w/g, l => l.toUpperCase())}
             </span>
           )}
-          {isAIEnabled && (
+          {fromCache && (
             <span className="ml-2 text-blue-600 dark:text-blue-400">
-              • AI-enhanced search enabled
+              • Cached results
             </span>
           )}
         </div>

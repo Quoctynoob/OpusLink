@@ -5,6 +5,7 @@ import Image from "next/image";
 import JobSearchForm from "./components/JobSearchForm";
 import JobListings from "./components/JobListings";
 import { JobSearchParams } from "./types";
+import SetupCheck from "./components/SetupCheck";
 
 export default function Home() {
   const [searchParams, setSearchParams] = useState<JobSearchParams>({});
@@ -16,17 +17,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+      {/* Setup Check Banner */}
+      <SetupCheck />
+      
       <header className="max-w-4xl mx-auto mb-12 text-center">
-        <div className="mb-6 flex justify-center">
-          <Image
-            className="dark:invert"
-            src="/next.svg"
-            alt="Next.js logo"
-            width={180}
-            height={38}
-            priority
-          />
-        </div>
         <h1 className="text-4xl font-bold mb-4">
           Find Your Dream Job
         </h1>

@@ -1,3 +1,6 @@
+// app/types/index.ts
+import { Timestamp } from "firebase/firestore";
+
 // Adzuna API response types
 export interface AdzunaApiResponse {
   results: JobListing[];
@@ -28,7 +31,12 @@ export interface JobListing {
   salary_is_predicted?: boolean;
   contract_type?: string;
   contract_time?: string;
-  __CLASS__: string;
+  __CLASS__?: string;
+  createdAt?: Timestamp;
+  verifiedAt?: Timestamp | null;
+  isValid?: boolean;
+  verificationAttempts?: number;
+  provider?: string;
 }
 
 // Frontend job search params
@@ -38,7 +46,6 @@ export interface JobSearchParams {
   job_type?: string; // Added job_type parameter
   page?: number;
   results_per_page?: number;
-  enhanced_search?: boolean; // Flag to enable AI-enhanced search
 }
 
 // API response format for our frontend
@@ -47,9 +54,28 @@ export interface JobApiResponse {
   totalJobs: number;
   totalPages: number;
   currentPage: number;
+  fromCache?: boolean;
 }
 
-// Related jobs mapping for AI suggestion
+// Related jobs mapping for search enhancement
 export interface RelatedJobsMap {
   [key: string]: string[];
+}
+
+// Cached job search result
+export interface CachedJobSearchResult {
+  params: JobSearchParams;
+  jobIds: string[];
+  totalJobs: number;
+  totalPages: number;
+  createdAt: Timestamp;
+}
+
+// Job provider result
+export interface JobProviderResult {
+  jobs: JobListing[];
+  totalJobs: number;
+  totalPages: number;
+  currentPage: number;
+  provider: string;
 }

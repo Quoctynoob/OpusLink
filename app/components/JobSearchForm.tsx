@@ -15,7 +15,6 @@ export default function JobSearchForm({
   const [jobTitle, setJobTitle] = useState("");
   const [location, setLocation] = useState("");
   const [jobType, setJobType] = useState("");
-  const [useAI, setUseAI] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +22,6 @@ export default function JobSearchForm({
       title: jobTitle,
       location: location,
       job_type: jobType,
-      enhanced_search: useAI,
       page: 1, // Reset to first page on new search
     });
   };
@@ -93,20 +91,6 @@ export default function JobSearchForm({
           <option value="contract">Contract/Intern</option>
           <option value="permanent">Permanent</option>
         </select>
-      </div>
-
-      {/* AI Search Toggle */}
-      <div className="flex items-center mt-4">
-        <input
-          type="checkbox"
-          id="useAI"
-          checked={useAI}
-          onChange={(e) => setUseAI(e.target.checked)}
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-        />
-        <label htmlFor="useAI" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-          Use AI to enhance search (finds similar job titles)
-        </label>
       </div>
 
       <div className="flex justify-center mt-6">

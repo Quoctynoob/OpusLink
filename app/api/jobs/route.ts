@@ -1,7 +1,26 @@
 // app/api/jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { JobApiResponse, JobSearchParams } from "@/app/types";
-import { enhanceJobTitleQuery, generateEnhancedQueryString } from "@/app/lib/aiSearchService";
+import { optimizeSearchQuery } from "@/app/lib/searchEnhancer";
+import { 
+  getCachedSearchResults, 
+  cacheSearchResults, 
+  getCachedJobsByIds,
+  cleanupExpiredJobs 
+} from "@/app/lib/jobCacheService";
+
+// Request counter to manage API rate limits
+let adzunaRequestsToday = 0;
+let lastResetDate = new Date().toDateString();
+
+// Reset counter if it's a new day
+function checkAndResetCounter() {
+  const today = new Date().toDateString();
+  if (today !== lastResetDate) {
+    adzunaRequestsToday = 0;
+    lastResetDate = today;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +31,43 @@ export async function GET(request: NextRequest) {
     const jobType = searchParams.get("job_type") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const results_per_page = parseInt(searchParams.get("results_per_page") || "10");
-    const enhanced_search = searchParams.get("enhanced_search") !== "false"; // Default to true
+    const skipCache = searchParams.get("skip_cache") === "true"; // Option to skip cache
+    
+    // Build search params object for cache lookup
+    const params: JobSearchParams = {
+      title,
+      location,
+      job_type: jobType,
+      page,
+      results_per_page
+    };
+    
+    // Check cache first (unless skipCache is true)
+    let cachedResults = null;
+    if (!skipCache) {
+      try {
+        cachedResults = await getCachedSearchResults(params);
+      } catch (cacheError) {
+        console.error("Cache error (will fetch fresh data):", cacheError);
+        // Continue with API fetch if cache fails
+      }
+    }
+    
+    if (cachedResults) {
+      console.log("Cache hit for search:", params);
+      
+      // Get the cached jobs
+      const jobs = await getCachedJobsByIds(cachedResults.jobIds);
+      
+      // Return cached results
+      return NextResponse.json({
+        jobs,
+        totalJobs: cachedResults.totalJobs,
+        totalPages: cachedResults.totalPages,
+        currentPage: page,
+        fromCache: true
+      });
+    }
 
     // Check for required API credentials
     const appId = process.env.ADZUNA_APP_ID;
@@ -25,9 +80,17 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
+    
+    // Check API rate limits
+    checkAndResetCounter();
+    if (adzunaRequestsToday >= 90) { // Leave some buffer below 100
+      return NextResponse.json(
+        { error: "API rate limit reached for today" },
+        { status: 429 }
+      );
+    }
 
     // Determine country code based on location
-    // This is a simple version - you may want to implement a more sophisticated solution
     let countryCode = "us"; // Default to US
     if (location.toLowerCase().includes("toronto") || 
         location.toLowerCase().includes("canada") ||
@@ -48,21 +111,11 @@ export async function GET(request: NextRequest) {
     apiUrl.searchParams.append("app_key", apiKey);
     apiUrl.searchParams.append("results_per_page", results_per_page.toString());
     
-    // Use AI enhancement for job title if enabled
-    if (title && enhanced_search) {
-      // Get enhanced search terms
-      const enhancedTerms = enhanceJobTitleQuery(title);
-      console.log("Enhanced search terms:", enhancedTerms);
-      
-      // Generate query string for Adzuna
-      const enhancedQuery = generateEnhancedQueryString(enhancedTerms);
-      
-      if (enhancedQuery) {
-        apiUrl.searchParams.append("what", enhancedQuery);
-      }
-    } else if (title) {
-      // Just use the original title query without enhancement
-      apiUrl.searchParams.append("what", title);
+    // Use search enhancement for job title
+    if (title) {
+      const optimizedQuery = optimizeSearchQuery(title);
+      console.log(`Enhanced search: "${title}" -> "${optimizedQuery}"`);
+      apiUrl.searchParams.append("what", optimizedQuery);
     }
     
     // Add location if provided
@@ -91,6 +144,9 @@ export async function GET(request: NextRequest) {
 
     console.log("Requesting from Adzuna:", apiUrl.toString());
     
+    // Increment API request counter
+    adzunaRequestsToday++;
+    
     // Fetch data from Adzuna API
     const response = await fetch(apiUrl.toString());
     
@@ -112,6 +168,17 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil((data.count || 0) / results_per_page),
       currentPage: page,
     };
+    
+    // Cache the results
+    await cacheSearchResults(
+      params,
+      responseData.jobs,
+      responseData.totalJobs,
+      responseData.totalPages
+    );
+    
+    // Trigger background cleanup of expired jobs (non-blocking)
+    cleanupExpiredJobs().catch(err => console.error("Error cleaning up expired jobs:", err));
 
     return NextResponse.json(responseData);
   } catch (error) {
